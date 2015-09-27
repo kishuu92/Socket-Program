@@ -1,0 +1,34 @@
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <pthread.h>
+int host2Socket;
+char buffer[1024];
+struct sockaddr_in host2Addr,host1Addr;
+socklen_t addr_size;
+void *myThreadFun(void *vargp)
+{
+	while(1){
+		recvfrom(host2Socket,buffer,1024,0,(struct sockaddr *)&host1Addr,&addr_size);
+		printf("Host1:  %s",buffer);
+	}
+}
+int main(void)
+{
+	pthread_t tid;
+	host2Socket=socket(PF_INET, SOCK_DGRAM, 0);
+	host2Addr.sin_family = AF_INET;
+	host2Addr.sin_port = htons(2000);
+	host2Addr.sin_addr.s_addr = inet_addr("127.0.0.1"); 
+	host1Addr.sin_family = AF_INET;
+	host1Addr.sin_port = htons(3000);
+	host1Addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	addr_size=sizeof(host2Addr);
+	bind(host2Socket,(struct sockaddr *)&host2Addr,addr_size);
+	pthread_create(&tid,NULL,myThreadFun,NULL);
+	while(1)
+	{
+		fgets(buffer,1024,stdin);
+		sendto(host2Socket,buffer,1024,0,(struct sockaddr *)&host1Addr,addr_size);
+	}
+}
